@@ -1,0 +1,130 @@
+version 1.0;
+
+ns junos = "http://xml.juniper.net/junos/*/junos";
+ns xnm = "http://xml.juniper.net/xnm/1.1/xnm";
+ns jcs = "http://xml.juniper.net/junos/commit-scripts/1.0";
+import "../import/junos.xsl";
+
+/*
+bounce interface script for Junos ver0.1 
+Practice excercise in SLAX by Martin White-Rose (Twitter: @aUsefulcom) 
+
+based _heavily_ on script used in Juniper Education IJAUT course 
+
+When copied to /var/db/scripts/op/ and added to the op script configuration, 
+This script will open config, disable the given interface, commit wait 10 (default) secs, then re-open config, enable the interface and commit 
+
+call this script as: 
+op bounce interface <interface name> wait <secs> 
+*/
+
+
+/* input arguments and set descriptions for help*/
+param $interface;
+param $wait;
+
+var $arguments = {
+    <argument> {
+        <name> "interface";
+        <description> "Script will disable this interface, wait 10 (default) secs and re-enable";
+    }
+    <argument> {
+        <name> "wait";
+        <description> "Number of seconds to wait before re-enabling interface (default 10)";
+    }
+}
+
+/* Getting the interface information to make sure it is not already Admin Down */
+var $rpc = <get-interface-information> {
+                <interface-name> $interface;
+            }
+
+var $int-status = jcs:invoke($rpc);
+
+/* Main script */
+
+match / {
+    <op-script-results> {
+        /* Test to see if they have set the interface variable and exit if not */
+        if (jcs:empty($interface)) {
+            <xnm:error> {
+                <message> "No Interface specified - please use 'op bounce interface <interface-name> wait <secs>'";
+            }
+        } else if ($int-status/physical-interface/admin-status == "down") {
+            /*Test if the interface is already disabled*/
+            <xnm:error> {
+                <message> "Warning - Interface "_ $interface _"is currently Admin Down - Aborting.";
+            }
+        } else {     
+            /* IF the tests passed - go ahead an bounce the interface */
+            var $mgd = jcs:open();
+            if (not($mgd)) {
+                <xnm:error> {
+                    <message> "Cannot open MGD connection.";
+                }
+            }
+            else {
+                /*If the connection worked, setup config to disable the given interface*/
+                var $disable-config = {
+                    <configuration> {
+                        <interfaces> {
+                            <interface> {
+                                <name> $interface;
+                                <disable>;
+                            }
+                        }
+                    }
+                }
+                /*end of the config variable */
+                
+                expr jcs:output("Connected to MGD.");
+
+                /* Used the MGD connection to load AND commit the config */
+                var $first-config := {
+                    call jcs:load-configuration($connection=$mgd, $configuration=$disable-config);
+                }
+                            /*Check commit worked, print output and then sleep for 10 Seconds or wait time from user */
+                if ($first-config//xnm:error) {
+                    <xnm:error> {
+                        <message> "Could not load and commit configuration to disable Interface.  Aborted.";
+                    }
+                } else if (jcs:empty($wait)) {
+                    expr jcs:output ("Interface ", $interface, " disabled.  Waiting 10 Seconds before re-enabling.");
+                    expr jcs:sleep(10,0);
+                } else {
+                    expr jcs:output ("Interface ", $interface, " disabled.  Waiting ", $wait, " Seconds before re-enabling.");
+                    expr jcs:sleep($wait,0);
+                }
+            
+                /* Get the config setup to re-enable the Interface by deleting disable */
+                var $enable-config = {
+                    <configuration> {
+                        <interfaces> {
+                            <interface> {
+                                <name> $interface;
+                                <disable delete="delete">;
+                            }
+                        }
+                    }
+                }
+                expr jcs:output("Re-enabling Interface ", $interface);
+
+                var $second-config := {
+                    call jcs:load-configuration($connection=$mgd, $configuration=$enable-config);
+                }
+                
+                /* Check the 2nd commit worked, print confirmation and end */
+                if ($second-config//xnm:error) {
+                    <xnm:error> {
+                        <message> "Could not load and commit configuration to re-enable Interface - STILL DISABLED, script aborted.";
+                    }
+                } else {
+                    expr jcs:output("Interface ", $interface, " Re-enabled.  Script by @aUsefulcom");
+                }
+
+                /*Close down the MGD connection*/
+                expr jcs:close($mgd);
+            }
+        }
+    }
+}
