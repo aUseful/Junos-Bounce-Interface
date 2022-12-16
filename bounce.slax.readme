@@ -1,3 +1,5 @@
+WARNING - Ver0.1 of this script DOES NOT CHECK FOR OTHER PENDING CHANGES PRIOR TO PERFORMING COMMITS (working on this for ver0.2).
+
 bounce interface script for Junos ver0.1 
 
 Practice excercise in SLAX by Martin White-Rose (Twitter: @aUsefulcom) 
@@ -7,6 +9,8 @@ This script is implemented in SLAX ver 1.0 and tested against EX and SRX running
 Based _heavily_ on script used in Juniper Education IJAUT course 
 
 ----------
+
+
 
 To Use this script:
 1 - Copy the slax script to /var/db/scripts/op/ on your Junos Device
