@@ -1,0 +1,26 @@
+bounce interface script for Junos ver0.1 
+
+Practice excercise in SLAX by Martin White-Rose (Twitter: @aUsefulcom) 
+
+This script is implemented in SLAX ver 1.0 and tested against EX and SRX running Junos 17, Junos 18 and higher.
+
+Based _heavily_ on script used in Juniper Education IJAUT course 
+
+----------
+
+To Use this script:
+1 - Copy the slax script to /var/db/scripts/op/ on your Junos Device
+2 - at the [edit system scripts] heirachy issue "set op file bounce.slax"
+3 - you can now issue "op bounce interface <interface-name> [wait <seconds]" 
+
+OPTIONS
+interface - the physical interface you would like to bounce
+wait - the time, in seconds, you would like to wait before re-enabling the interface (default 10 seconds if not set)
+
+When called this script will
+1 - Check that the Interface has been specified
+2 - Check that the Interface is not currently Admin Down (and abort if it is, so as to avoid brining up a port that was down)
+3 - Connect to MGD, disable the interface and commit
+4 - Wait for specified time (or 10 seconds)
+5 - re-enable the port and commit
+6 - Disconnect from MGD and exit.
