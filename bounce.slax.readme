@@ -1,6 +1,4 @@
-WARNING - Ver0.1 of this script DOES NOT CHECK FOR OTHER PENDING CHANGES PRIOR TO PERFORMING COMMITS (working on this for ver0.2).
-
-bounce interface script for Junos ver0.1 
+bounce interface script for Junos ver0.2 
 
 Practice excercise in SLAX by Martin White-Rose (Twitter: @aUsefulcom) 
 
@@ -23,8 +21,9 @@ wait - the time, in seconds, you would like to wait before re-enabling the inter
 
 When called this script will
 1 - Check that the Interface has been specified
-2 - Check that the Interface is not currently Admin Down (and abort if it is, so as to avoid brining up a port that was down)
-3 - Connect to MGD, disable the interface and commit
-4 - Wait for specified time (or 10 seconds)
-5 - re-enable the port and commit
-6 - Disconnect from MGD and exit.
+2 - Check that no uncommitted changes exist in candidate - if found, will abort to avoid accidental changes.
+3 - Check that the Interface is not currently Admin Down (and abort if it is, so as to avoid brining up a port that was down)
+4 - Connect to MGD, disable the interface and commit
+5 - Wait for specified time (or 10 seconds)
+6 - re-enable the port and commit
+7 - Disconnect from MGD and exit.
