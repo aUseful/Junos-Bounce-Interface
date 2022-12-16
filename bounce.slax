@@ -6,13 +6,15 @@ ns jcs = "http://xml.juniper.net/junos/commit-scripts/1.0";
 import "../import/junos.xsl";
 
 /*
-bounce interface script for Junos ver0.1 
+bounce interface script for Junos ver0.2 
 Practice excercise in SLAX by Martin White-Rose (Twitter: @aUsefulcom) 
 
 based _heavily_ on script used in Juniper Education IJAUT course 
 
 When copied to /var/db/scripts/op/ and added to the op script configuration, 
 This script will open config, disable the given interface, commit wait 10 (default) secs, then re-open config, enable the interface and commit 
+
+V0.2 - Added checking for uncommitted changes.
 
 call this script as: 
 op bounce interface <interface name> wait <secs> 
@@ -41,6 +43,11 @@ var $rpc = <get-interface-information> {
 
 var $int-status = jcs:invoke($rpc);
 
+/* Getting the config with changed markers to confirm if any uncommited candidate exists */
+
+var $config-rpc = <get-configuration changed="changed" database="candidate" format="xml">;
+var $config-state = jcs:invoke($config-rpc);
+
 /* Main script */
 
 match / {
@@ -54,6 +61,11 @@ match / {
             /*Test if the interface is already disabled*/
             <xnm:error> {
                 <message> "Warning - Interface "_ $interface _"is currently Admin Down - Aborting.";
+            }
+        } else if ($config-state//*[@junos:changed="changed"]) {
+            /* Test to see if candidate config contains uncommitted changes */
+            <xnm:error> {
+                <message> "Warning - Uncommitted Candidate Configuration changes detected - Aborting.";
             }
         } else {     
             /* IF the tests passed - go ahead an bounce the interface */
